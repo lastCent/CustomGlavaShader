@@ -1,5 +1,8 @@
 in vec4 gl_FragCoord;
 
+#request uniform "time" time
+uniform float time;
+
 #request uniform "screen" screen
 uniform ivec2 screen;
 
@@ -28,18 +31,26 @@ uniform sampler1D audio_r;
 
 out vec4 fragment;
 
-#define linewidth 30
-#define amplification 400
+#define linewidth 10
+#define amplification 300
+#define BORDER_X screen.x*0.1
+#define BORDER_Y screen.y*0.1
 
 #define smooth_v(pos) (((smooth_audio(audio_l, audio_sz, pos) + smooth_audio(audio_r, audio_sz, pos)) / 2 ) * amplification)
 
 #define TWOPI 6.28318530718
 #define PI 3.14159265359
+#define tripmode 0
 
 vec4 rotate_point(vec4 fragCoord, float angle, vec2 rotation_center) {
     /* add values to angle (such as fragCoord.xy) for neat patterns */
     float sinus = sin(angle);
     float cosinus = cos(angle);
+
+    if (tripmode > 0) {
+        sinus *= sin(fragCoord.x);
+        cosinus /= cos(fragCoord.x);
+    }
 
     fragCoord.x = fragCoord.x - rotation_center.x;
     fragCoord.y = fragCoord.y - rotation_center.y;
@@ -53,23 +64,23 @@ vec4 rotate_point(vec4 fragCoord, float angle, vec2 rotation_center) {
     return temp;
 }
 
-void draw_square(float v_avg, vec4 color) {
+void draw_square(float v_avg, float time, vec4 color) {
     vec4 outer_square_tblr = vec4(
-        screen.y - v_avg,
-        0 + v_avg,
-        0 + v_avg, 
-        screen.x - v_avg
+        screen.y - v_avg - BORDER_Y,
+        0 + v_avg + BORDER_Y,
+        0 + v_avg + 0.1*screen.x*sin(time) + BORDER_X, 
+        screen.x - v_avg + 0.1*screen.x*sin(time) - BORDER_X
     );
     vec4 inner_square_tblr = vec4(
-        screen.y - v_avg - linewidth,
-        0 + v_avg + linewidth,
-        0 + v_avg + linewidth, 
-        screen.x - v_avg - linewidth
+        screen.y - v_avg - linewidth -BORDER_Y,
+        0 + v_avg + linewidth + BORDER_Y,
+        0 + v_avg + linewidth + 0.1*screen.x*sin(time) + BORDER_X, 
+        screen.x - v_avg - linewidth + 0.1*screen.x*sin(time) - BORDER_X  
     );
 
-    /* TODO: Rotated rectangle collision detection, rotate point not rectangle */
+    /* Rotated rectangle collision detection, rotate point not rectangle */
 
-    vec4 rotated_fragCoord = rotate_point(gl_FragCoord, PI/3, vec2(screen.x/2, screen.y/2)); 
+    vec4 rotated_fragCoord = rotate_point(gl_FragCoord, 0, vec2(screen.x/2, screen.y/2)); 
 
     vec4 point = rotated_fragCoord;
 
@@ -91,10 +102,10 @@ void main() {
     fragment = #171717e6;
 
     /* pos index is [0.0F , 1.0F) */
-    
-    draw_square(smooth_v(0.0F), #995555ff);
-    draw_square(smooth_v(0.5F) + linewidth, #559955ff);
-    draw_square(smooth_v(0.9F) + 2*linewidth, #555599ff);
+
+    for (int i=0; i<10; i++) {
+        draw_square(smooth_v(i*0.1F) + i*linewidth, 0.5*time, #ff0000e6 - (i* #20000000) + (i * #00001000)); 
+    }
 
 }
 
